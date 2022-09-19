@@ -1,6 +1,6 @@
-var xmlCrypto = require('xml-crypto'),
-    xmldom = require('xmldom');
-    
+var xmlCrypto = require('xml-crypto');
+var xmldom = require('@auth0/xmldom');
+
 exports.verifySignature = function(assertion, cert) {
   try {
     var doc = new xmldom.DOMParser().parseFromString(assertion);
@@ -20,7 +20,7 @@ exports.verifySignature = function(assertion, cert) {
     if (!result) {
       console.log(sig.validationErrors);
     }
-    
+
     return result;
   } catch (e) {
     console.log(e);
@@ -35,10 +35,38 @@ exports.getIssuer = function(assertion) {
   return issuer[0].textContent;
 };
 
+exports.getElementText = function(assertion, elementName) {
+  var doc = new xmldom.DOMParser().parseFromString(assertion);
+  var element = doc.documentElement.getElementsByTagName(elementName);
+  return element[0].textContent;
+};
+
 exports.getDestination = function(response) {
   var doc = new xmldom.DOMParser().parseFromString(response);
   var destination = doc.documentElement.getAttribute('Destination');
   return destination;
+};
+
+exports.getInResponseTo = function(response) {
+  var doc = new xmldom.DOMParser().parseFromString(response);
+  var destination = doc.documentElement.getAttribute('InResponseTo');
+  return destination;
+};
+
+exports.getStatusCode = function(response) {
+  var doc = new xmldom.DOMParser().parseFromString(response);
+  var status = doc.documentElement
+                  .getElementsByTagNameNS('urn:oasis:names:tc:SAML:2.0:protocol', 'StatusCode')[0]
+                  .getAttribute('Value');
+  return status;
+};
+
+exports.getStatusMessage = function(response) {
+  var doc = new xmldom.DOMParser().parseFromString(response);
+  var message = doc.documentElement
+                  .getElementsByTagNameNS('urn:oasis:names:tc:SAML:2.0:protocol', 'StatusMessage')[0]
+                  .textContent;
+  return message;
 };
 
 exports.getSignatureMethodAlgorithm = function(assertion) {
@@ -60,9 +88,22 @@ exports.getIssueInstant = function(assertion) {
   return doc.documentElement.getAttribute('IssueInstant');
 };
 
+/**
+ * @param {String} assertion
+ * @return {number} the instant in milliseconds since the Epoch
+ */
+exports.getIssueInstantUTC = function(assertion) {
+  return new Date(exports.getIssueInstant(assertion)).getTime();
+};
+
 exports.getConditions = function(assertion) {
   var doc = new xmldom.DOMParser().parseFromString(assertion);
   return doc.documentElement.getElementsByTagName('saml:Conditions');
+};
+
+exports.getConsent = function(assertion) {
+  var doc = new xmldom.DOMParser().parseFromString(assertion);
+  return doc.documentElement.getAttribute('Consent');
 };
 
 exports.getAudiences = function(assertion) {
@@ -83,6 +124,13 @@ exports.getNameIdentifier = function(assertion) {
   var doc = new xmldom.DOMParser().parseFromString(assertion);
   return doc.documentElement
             .getElementsByTagName('saml:NameID')[0];
+};
+
+exports.getNameIdentifierFormat = function(assertion) {
+  var doc = new xmldom.DOMParser().parseFromString(assertion);
+  return doc.documentElement
+            .getElementsByTagName('NameID')[0]
+            .getAttribute('Format');
 };
 
 exports.getSubjectConfirmationData = function(assertion) {
